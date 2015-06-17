@@ -74,7 +74,8 @@ We were privileged to have three prominent community members present
 keynotes. Jake Vanderplas, gave a motivating perspective on the interface
 between science and data. Wes McKinney gave an overview of the presence of
 Python in finance and quantitative economics. Finally, Chris Wiggins gave a
-unique p
+unique perspective on the data science behind the machine of newspaper
+production.
 
 These proceedings contain **TODO:NPapers** peer-reviewed contributions, based on
 talks presented at the conference.  They provide a peek into the
