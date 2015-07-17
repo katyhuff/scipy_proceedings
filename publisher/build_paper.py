@@ -8,10 +8,10 @@ import re
 import tempfile
 import glob
 import shutil
+import tarfile
 
 from writer import writer
-from conf import papers_dir, output_dir
-
+from conf import papers_dir, output_dir, arxiv_dir
 import options
 
 header = r'''
@@ -27,6 +27,7 @@ header = r'''
     \newcommand*{\docutilsroleref}{\ref}
     \newcommand*{\docutilsrolelabel}{\label}
     \providecommand*\DUrolecite[1]{\cite{#1}}
+    \AtEndDocument{\cleardoublepage}
 
 .. |---| unicode:: U+2014  .. em dash, trimming surrounding whitespace
     :trim:
@@ -48,7 +49,8 @@ def rst2tex(in_path, out_path):
     shutil.copy(scipy_status, out_path)
     scipy_style = os.path.join(base_dir, '_static/scipy.sty')
     shutil.copy(scipy_style, out_path)
-    preamble = r'''\usepackage{scipy}'''
+    preamble = r'''\pdfoutput=1
+\usepackage{scipy}'''
 
     # Add the LaTeX commands required by Pygments to do syntax highlighting
 
@@ -73,6 +75,8 @@ def rst2tex(in_path, out_path):
                 'latex_preamble': preamble,
                 'documentoptions': 'letterpaper,compsoc,twoside',
                 'halt_level': 3,  # 2: warn; 3: error; 4: severe
+                'sectnum_xform': False,
+                'sectnum_depth': 3,
                 }
 
     try:
@@ -92,6 +96,12 @@ def rst2tex(in_path, out_path):
     d = options.cfg2dict(stats_file)
     try:
         d.update(writer.document.stats)
+        arxiv_path = os.path.join(in_path, 'arxiv.json')
+        if os.path.exists(arxiv_path):
+            arxiv = options.cfg2dict(arxiv_path)
+        else:
+            arxiv = {'arxiv_identifier': None}
+        d.update(arxiv)
         options.dict2cfg(d, stats_file)
     except AttributeError:
         print("Error: no paper configuration found")
@@ -104,7 +114,9 @@ def rst2tex(in_path, out_path):
 def tex2pdf(out_path):
 
     import subprocess
-    command_line = 'pdflatex -halt-on-error paper.tex'
+    #command_line = 'pdflatex -halt-on-error paper.tex'
+    command_line = 'cd "%s" ' % out_path + \
+                   ' ; pdflatex -halt-on-error paper.tex'
 
     # -- dummy tempfile is a hacky way to prevent pdflatex
     #    from asking for any missing files via stdin prompts,
@@ -187,6 +199,10 @@ def page_count(pdflatex_stdout, paper_dir):
 
     options.dict2cfg(d, cfgname)
 
+def include_for_arxiv(filename):
+    return not (filename.endswith(('.eps', '.log', '.aux', '.out', '.json', '.rst')) or
+                (filename.startswith('figures-') and filename.endswith('.tex')) or
+                os.path.basename(filename) in ['paper.pdf', 'IEEEtran.cls'])
 
 def build_paper(paper_id):
     out_path = os.path.join(output_dir, paper_id)
@@ -196,6 +212,14 @@ def build_paper(paper_id):
     rst2tex(in_path, out_path)
     pdflatex_stdout = tex2pdf(out_path)
     page_count(pdflatex_stdout, out_path)
+    options.mkdir_p(arxiv_dir)
+    archive = tarfile.TarFile(os.path.join(arxiv_dir,paper_id+'.tar'), 'w')
+    for filename in filter(include_for_arxiv, os.listdir(out_path)):
+        if filename.endswith('-eps-converted-to.pdf'):
+            archive.add(os.path.join(out_path, filename), arcname=filename[:-21]+'.pdf')
+        else:
+            archive.add(os.path.join(out_path, filename), arcname=filename)
+    archive.close()
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

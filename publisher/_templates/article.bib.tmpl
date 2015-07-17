@@ -11,4 +11,8 @@ def bibtex_caps(words):
   pages     = { {{' - '.join([str(article['page']['start']), str(article['page']['stop'])])}} },
   year      = { {{proceedings['year']}} },
   editor    = { {{bibtex_caps(' and '.join(proceedings['editor']))}} }
+{{if article['arxiv_identifier']}}
+  archivePrefix = "arXiv",
+  eprint    = { {{article['arxiv_identifier']}} },
+{{endif}}
 }
