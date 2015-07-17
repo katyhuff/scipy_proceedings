@@ -225,7 +225,7 @@ class Translator(LaTeXTranslator):
           Copyright\,\copyright\,%(year)s %(copyright_holder)s %(copyright)s%%
         ''' % \
         {'email': self.author_emails[0],
-         'year': options['proceedings']['copyright_year'],
+         'year': options['proceedings']['year'],
          'copyright_holder': copyright_holder,
          'copyright': options['proceedings']['copyright']['article']}
 
@@ -403,7 +403,7 @@ class Translator(LaTeXTranslator):
             self.active_table.caption = []
 
         opening = self.active_table.get_opening()
-        opening = opening.replace(r'{\linewidth}', r'{0.8\linewidth}')
+        opening = opening.replace('linewidth', 'tablewidth')
         self.active_table.get_opening = lambda: opening
 
         # For some reason, docutils want to process longtable headers twice.  I
